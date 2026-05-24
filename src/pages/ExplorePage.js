@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildGMapsUrl } from '../lib/utils';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../lib/AuthContext';
+import { createTrip } from '../lib/supabase';
+import { toast } from '../lib/toast';
+import TripModal from '../components/TripModal';
+import SearchBox from '../components/SearchBox';
 
 const ATTRACTIONS = [
   {
@@ -728,6 +733,9 @@ function getDistanceKm(from, to) {
 }
 
 export default function ExplorePage() {
+  const { session } = useAuth();
+  const [modalTrip, setModalTrip] = useState(null); // for TripModal
+  const [search, setSearch] = useState('');
   const [position, setPosition] = useState(null);
   const [locationError, setLocationError] = useState('');
   const [mapView, setMapView] = useState(false);
@@ -762,6 +770,7 @@ export default function ExplorePage() {
   const attractions = useMemo(() => {
     return ATTRACTIONS
       .filter(item => selectedTypes.includes(item.type))
+      .filter(item => !search || item.name.toLowerCase().includes(search.toLowerCase()) || item.location.toLowerCase().includes(search.toLowerCase()))
       .map((item) => {
         const distance = position ? getDistanceKm(position, item) : null;
         return { ...item, distance };
@@ -771,7 +780,7 @@ export default function ExplorePage() {
         if (b.distance != null) return 1;
         return a.name.localeCompare(b.name);
       });
-  }, [position, selectedTypes]);
+  }, [position, selectedTypes, search]);
 
   useEffect(() => {
     if (!mapView) return;
@@ -781,7 +790,7 @@ export default function ExplorePage() {
       if (!window.L || !window.L.Icon || !window.L.Icon.Default) return;
       window.L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
     }
@@ -807,6 +816,16 @@ export default function ExplorePage() {
       window.L.tileLayer(getTileUrl(mapStyle), {
         attribution: getTileAttribution(mapStyle)
       }).addTo(m);
+
+      // Show current location marker
+      if (position) {
+        window.L.circleMarker([position.lat, position.lng], {
+          radius: 10,
+          color: '#1d4ed8',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.8,
+        }).addTo(m).bindPopup('You are here');
+      }
 
       attractions.forEach((item) => {
         const marker = window.L.marker([item.lat, item.lng]).addTo(m);
@@ -841,6 +860,7 @@ export default function ExplorePage() {
             <p className="page-subtitle">
               Browse National Trust parks, beaches, theme parks, attractions and UK airports.
             </p>
+            <SearchBox placeholder="Search places..." onSearch={setSearch} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px' }}>
               {['Airport', 'Military Base', 'Park', 'Attraction', 'Theme Park', 'Beach', 'Walk'].map((type) => (
                 <label key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--muted)' }}>
@@ -910,19 +930,59 @@ export default function ExplorePage() {
                   )}
                 </div>
                 <p style={{ marginBottom: '12px', color: 'var(--text)', fontSize: '14px' }}>{item.description}</p>
-                <a
-                  href={buildGMapsUrl(item)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-primary btn-sm"
-                >
-                  🧭 Navigate
-                </a>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <a
+                    href={buildGMapsUrl(item)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-primary btn-sm"
+                  >
+                    🧭 Navigate
+                  </a>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      if (!session?.user?.id) {
+                        toast('Please sign in to add trips.', 'error');
+                        return;
+                      }
+                      setModalTrip({
+                        name: item.name,
+                        location: item.location,
+                        description: item.description,
+                        type: item.type,
+                        lat: item.lat,
+                        lng: item.lng,
+                        date: '',
+                        time: ''
+                      });
+                    }}
+                  >
+                    ＋ Add to My Trips
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      {modalTrip && (
+        <TripModal
+          trip={modalTrip}
+          onSave={async (form) => {
+            try {
+              await createTrip({
+                ...form,
+                user_id: session.user.id
+              });
+              toast('Added to your trips!', 'success');
+            } catch (err) {
+              toast('Could not add trip: ' + err.message, 'error');
+            }
+          }}
+          onClose={() => setModalTrip(null)}
+        />
+      )}
     </>
   );
 }
