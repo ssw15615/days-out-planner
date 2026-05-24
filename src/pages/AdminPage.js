@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { getAllProfiles, supabase, getTrips } from '../lib/supabase';
+import { getAllProfiles, getTrips, adminCreateUser, deleteUser, updateProfile } from '../lib/supabase';
 import { toast } from '../lib/toast';
 import { isUpcoming, initials } from '../lib/utils';
 import Navbar from '../components/Navbar';
@@ -11,7 +11,7 @@ export default function AdminPage() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'user' });
+  const [createForm, setCreateForm] = useState({ name: '', username: '', password: '', role: 'user' });
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -34,24 +34,15 @@ export default function AdminPage() {
 
   async function handleCreateUser(e) {
     e.preventDefault();
-    if (!createForm.name || !createForm.email || !createForm.password) {
+    if (!createForm.name || !createForm.username || !createForm.password) {
       toast('Fill all fields', 'error'); return;
     }
     setCreating(true);
     try {
-      // Use Supabase signUp — in real admin flows you'd use the service role
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: createForm.email,
-        password: createForm.password,
-        user_metadata: { name: createForm.name },
-        email_confirm: true,
-      });
-      if (error) throw error;
-      // Set role
-      await supabase.from('profiles').update({ role: createForm.role }).eq('id', data.user.id);
+      await adminCreateUser(createForm.username, createForm.password, createForm.name, createForm.role);
       toast(`Account created for ${createForm.name}`, 'success');
       setShowCreate(false);
-      setCreateForm({ name: '', email: '', password: '', role: 'user' });
+      setCreateForm({ name: '', username: '', password: '', role: 'user' });
       loadAll();
     } catch (err) {
       toast(err.message, 'error');
@@ -64,8 +55,7 @@ export default function AdminPage() {
     if (userId === session.user.id) { toast("Can't delete your own account", 'error'); return; }
     if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      if (error) throw error;
+      await deleteUser(userId);
       toast('User deleted');
       loadAll();
     } catch (err) {
@@ -75,7 +65,7 @@ export default function AdminPage() {
 
   async function handleRoleChange(userId, newRole) {
     try {
-      await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+      await updateProfile(userId, { role: newRole });
       toast('Role updated', 'success');
       loadAll();
     } catch (err) {
@@ -121,8 +111,8 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="form-group">
-                <label>Email address</label>
-                <input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} required />
+                <label>Username</label>
+                <input type="text" value={createForm.username} onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))} required />
               </div>
               <div className="form-group">
                 <label>Temporary password</label>
@@ -156,7 +146,7 @@ export default function AdminPage() {
                   <thead>
                     <tr>
                       <th>User</th>
-                      <th>Email</th>
+                      <th>Username</th>
                       <th>Role</th>
                       <th>Trips</th>
                       <th>Joined</th>
@@ -175,7 +165,7 @@ export default function AdminPage() {
                             {p.id === session.user.id && <span className="badge badge-teal" style={{ fontSize: '10px' }}>You</span>}
                           </div>
                         </td>
-                        <td style={{ color: 'var(--muted)' }}>{p.email || '—'}</td>
+                        <td style={{ color: 'var(--muted)' }}>{p.username || '—'}</td>
                         <td>
                           <select
                             value={p.role || 'user'}

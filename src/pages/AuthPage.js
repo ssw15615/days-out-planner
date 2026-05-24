@@ -4,7 +4,7 @@ import { signIn, signUp } from '../lib/supabase';
 
 export default function AuthPage() {
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -15,11 +15,26 @@ export default function AuthPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
+      if (!form.username.trim()) {
+        setError('Username is required');
+        setLoading(false);
+        return;
+      }
+      if (!form.password.trim()) {
+        setError('Password is required');
+        setLoading(false);
+        return;
+      }
+
       if (mode === 'login') {
-        await signIn(form.email, form.password);
+        await signIn(form.username, form.password);
       } else {
-        if (!form.name.trim()) { setError('Name is required'); setLoading(false); return; }
-        await signUp(form.email, form.password, form.name);
+        if (!form.name.trim()) {
+          setError('Full name is required');
+          setLoading(false);
+          return;
+        }
+        await signUp(form.username, form.password, form.name);
       }
       navigate('/trips');
     } catch (err) {
@@ -43,12 +58,13 @@ export default function AuthPage() {
           {mode === 'register' && (
             <div className="form-group">
               <label>Full name</label>
-              <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Your name" required />
+              <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Your full name" required />
             </div>
           )}
           <div className="form-group">
-            <label>Email address</label>
-            <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="you@example.com" required />
+            <label>Username</label>
+            <input type="text" value={form.username} onChange={e => set('username', e.target.value)} placeholder="yourusername" required />
+            <small className="form-help">You can sign in with this username instead of email.</small>
           </div>
           <div className="form-group">
             <label>Password</label>

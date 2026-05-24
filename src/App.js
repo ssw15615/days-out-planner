@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage';
 import TripsPage from './pages/TripsPage';
 import TripDetailPage from './pages/TripDetailPage';
 import MapPage from './pages/MapPage';
+import ExplorePage from './pages/ExplorePage';
 import AdminPage from './pages/AdminPage';
 import './index.css';
 
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/trips" element={<PrivateRoute><TripsPage /></PrivateRoute>} />
       <Route path="/trips/:id" element={<PrivateRoute><TripDetailPage /></PrivateRoute>} />
       <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
+      <Route path="/explore" element={<PrivateRoute><ExplorePage /></PrivateRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="*" element={<Navigate to={session ? '/trips' : '/login'} replace />} />
     </Routes>

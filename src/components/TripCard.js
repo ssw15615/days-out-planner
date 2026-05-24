@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { fmtDate, isUpcoming, catBadge, buildGCalUrl } from '../lib/utils';
+import { fmtDate, isUpcoming, catBadge, buildGCalUrl, buildGMapsUrl } from '../lib/utils';
 import { deleteTrip } from '../lib/supabase';
 import { toast } from '../lib/toast';
 import { useAuth } from '../lib/AuthContext';
@@ -51,6 +51,14 @@ export default function TripCard({ trip, onEdit, onDeleted }) {
     toast('Opening Google Calendar…', 'success');
   }
 
+  function handleGMaps(e) {
+    e.stopPropagation();
+    const url = buildGMapsUrl(trip);
+    if (!url) { toast('Add a location or map coordinates to this trip first', 'error'); return; }
+    window.open(url, '_blank');
+    toast('Opening Google Maps…', 'success');
+  }
+
   return (
     <div className="trip-card" onClick={() => navigate(`/trips/${trip.id}`)}>
       <div className={`trip-card-banner ${upcoming ? 'upcoming' : 'past'}`} />
@@ -82,6 +90,11 @@ export default function TripCard({ trip, onEdit, onDeleted }) {
       <div className="trip-card-actions" onClick={e => e.stopPropagation()}>
         <button className="btn btn-outline btn-sm" onClick={() => navigate(`/trips/${trip.id}`)}>Details</button>
         <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); onEdit(trip); }}>Edit</button>
+        {trip.location && (
+          <button className="btn btn-primary btn-sm" onClick={handleGMaps}>
+            <ClockIcon /> Navigate
+          </button>
+        )}
         {upcoming && (
           <button className="btn btn-gold btn-sm" onClick={handleGCal}>
             <ClockIcon /> Google Cal

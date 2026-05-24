@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { CATEGORIES } from '../lib/utils';
 
 const BLANK = {
@@ -23,8 +25,120 @@ export default function TripModal({ trip, onSave, onClose }) {
   } : { ...BLANK });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
+  const mapContainer = useRef(null);
+  const mapInstance = useRef(null);
+  const markerInstance = useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    const term = form.location.trim();
+    if (!term || term.length < 3) {
+      setSearchResults([]);
+      setSearchError('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError('');
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=5&countrycodes=gb&q=${encodeURIComponent(term)}`
+        );
+        const results = await response.json();
+        setSearchResults(results.map(r => ({
+          id: r.place_id,
+          name: r.display_name,
+          lat: r.lat,
+          lng: r.lon,
+        })));
+      } catch (e) {
+        setSearchError('Location search failed');
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [form.location]);
+
+  useEffect(() => {
+    if (!mapContainer.current) return;
+
+    const map = L.map(mapContainer.current, {
+      center: form.lat && form.lng ? [parseFloat(form.lat), parseFloat(form.lng)] : [52.5, -1.5],
+      zoom: form.lat && form.lng ? 12 : 6,
+      scrollWheelZoom: false,
+      dragging: true,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      zoomControl: true,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    map.on('click', (e) => {
+      const lat = e.latlng.lat.toFixed(6);
+      const lng = e.latlng.lng.toFixed(6);
+      set('lat', lat);
+      set('lng', lng);
+      setMapMarker(e.latlng, map);
+    });
+
+    mapInstance.current = map;
+    if (form.lat && form.lng) setMapMarker({ lat: parseFloat(form.lat), lng: parseFloat(form.lng) }, map);
+
+    return () => {
+      map.remove();
+      mapInstance.current = null;
+      markerInstance.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapInstance.current) return;
+    if (form.lat && form.lng) {
+      const position = { lat: parseFloat(form.lat), lng: parseFloat(form.lng) };
+      setMapMarker(position, mapInstance.current);
+      mapInstance.current.setView(position, 12);
+    } else if (markerInstance.current) {
+      mapInstance.current.removeLayer(markerInstance.current);
+      markerInstance.current = null;
+    }
+  }, [form.lat, form.lng]);
+
+  function setMapMarker(position, map) {
+    if (markerInstance.current) {
+      markerInstance.current.setLatLng(position);
+    } else {
+      markerInstance.current = L.circleMarker(position, {
+        radius: 8,
+        color: '#1d4ed8',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.9,
+      }).addTo(map);
+    }
+  }
+
+  function applyLocationSuggestion(result) {
+    set('location', result.name);
+    set('lat', result.lat);
+    set('lng', result.lng);
+    setSearchResults([]);
+    if (mapInstance.current) {
+      const position = { lat: parseFloat(result.lat), lng: parseFloat(result.lng) };
+      mapInstance.current.setView(position, 12);
+      setMapMarker(position, mapInstance.current);
+    }
+  }
 
   async function handleSave() {
     if (!form.name.trim()) { setError('Trip name is required'); return; }
@@ -79,18 +193,42 @@ export default function TripModal({ trip, onSave, onClose }) {
           <div className="form-group">
             <label>Location name</label>
             <input type="text" value={form.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Alton, Staffordshire" />
+            <small className="hint">Search and choose a location, or click on the map below.</small>
+            {searchLoading && <div className="hint">Searching locations…</div>}
+            {searchError && <div className="auth-error" style={{ marginTop: '0.75rem' }}>{searchError}</div>}
+            {searchResults.length > 0 && (
+              <div className="location-suggestions">
+                {searchResults.map(result => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    className="location-suggestion"
+                    onClick={() => applyLocationSuggestion(result)}
+                  >
+                    <strong>{result.name.split(',')[0]}</strong>
+                    <div>{result.name}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="row-2">
             <div className="form-group">
               <label>Latitude</label>
               <input type="number" step="0.0001" value={form.lat} onChange={e => set('lat', e.target.value)} placeholder="52.9886" />
-              <span className="hint">Right-click in Google Maps → copy coordinates</span>
+              <span className="hint">Click the map to pick the location.</span>
             </div>
             <div className="form-group">
               <label>Longitude</label>
               <input type="number" step="0.0001" value={form.lng} onChange={e => set('lng', e.target.value)} placeholder="-1.8908" />
             </div>
+          </div>
+
+          <div className="form-group">
+            <div style={{ marginBottom: '0.75rem', fontWeight: 600 }}>Location picker</div>
+            <div ref={mapContainer} style={{ width: '100%', minHeight: '220px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #d1d5db' }} />
+            <div className="hint">Tap or click the map to set coordinates.</div>
           </div>
 
           <div className="form-group">

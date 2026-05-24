@@ -21,6 +21,7 @@ export default function Navbar() {
       <div className="nav-tabs">
         <Link to="/trips" className={active('/trips')}>My Trips</Link>
         <Link to="/map" className={active('/map')}>Map View</Link>
+        <Link to="/explore" className={active('/explore')}>Explore</Link>
         {isAdmin && <Link to="/admin" className={active('/admin')}>Admin</Link>}
       </div>
 

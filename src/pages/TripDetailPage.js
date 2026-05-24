@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { getTrips, updateTrip } from '../lib/supabase';
 import { toast } from '../lib/toast';
-import { fmtDate, isUpcoming, catBadge, buildGCalUrl } from '../lib/utils';
+import { fmtDate, isUpcoming, catBadge, buildGCalUrl, buildGMapsUrl } from '../lib/utils';
 import TripModal from '../components/TripModal';
 import Navbar from '../components/Navbar';
 
@@ -22,6 +22,15 @@ export default function TripDetailPage() {
   useEffect(() => {
     if (!trip?.lat || !trip?.lng) return;
     // Lazy-load Leaflet for the detail map
+    function fixLeafletDefaultIcons() {
+      if (!window.L || !window.L.Icon || !window.L.Icon.Default) return;
+      window.L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+    }
+
     if (!window.L) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -29,9 +38,10 @@ export default function TripDetailPage() {
       document.head.appendChild(link);
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => initMap();
+      script.onload = () => { fixLeafletDefaultIcons(); initMap(); };
       document.head.appendChild(script);
     } else {
+      fixLeafletDefaultIcons();
       setTimeout(initMap, 100);
     }
   }, [trip]);
@@ -73,6 +83,13 @@ export default function TripDetailPage() {
     if (!url) { toast('Add a date to this trip first', 'error'); return; }
     window.open(url, '_blank');
     toast('Opening Google Calendar…', 'success');
+  }
+
+  function handleGMaps() {
+    const url = buildGMapsUrl(trip);
+    if (!url) { toast('Add a location or map coordinates to this trip first', 'error'); return; }
+    window.open(url, '_blank');
+    toast('Opening Google Maps…', 'success');
   }
 
   if (loading) return (
@@ -141,6 +158,11 @@ export default function TripDetailPage() {
             <a href={trip.ticket_url} target="_blank" rel="noreferrer" className="btn btn-primary">
               🎟️ Buy tickets
             </a>
+          )}
+          {trip.location && (
+            <button className="btn btn-primary" onClick={handleGMaps}>
+              🧭 Navigate with Google Maps
+            </button>
           )}
           {upcoming && (
             <button className="btn btn-gold" onClick={handleGCal}>

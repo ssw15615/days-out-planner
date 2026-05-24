@@ -10,14 +10,25 @@ export default function MapPage() {
   const { session, isAdmin } = useAuth();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mapStyle, setMapStyle] = useState('streets');
   const mapRef = useRef(null);
   const leafRef = useRef(null);
+  const tileLayerRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadAndInitMap();
     return () => { if (leafRef.current) { leafRef.current.remove(); leafRef.current = null; } };
   }, []);
+
+  useEffect(() => {
+    if (!leafRef.current || !tileLayerRef.current) return;
+    const map = leafRef.current;
+    map.removeLayer(tileLayerRef.current);
+    tileLayerRef.current = window.L.tileLayer(getTileUrl(mapStyle), {
+      attribution: getTileAttribution(mapStyle)
+    }).addTo(map);
+  }, [mapStyle]);
 
   async function loadAndInitMap() {
     try {
@@ -31,15 +42,36 @@ export default function MapPage() {
     }
   }
 
+  function getTileUrl(style) {
+    return style === 'satellite'
+      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  }
+
+  function getTileAttribution(style) {
+    return style === 'satellite'
+      ? 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+      : '© OpenStreetMap contributors';
+  }
+
+  function fixLeafletDefaultIcons() {
+    if (!window.L || !window.L.Icon || !window.L.Icon.Default) return;
+    window.L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+  }
+
   function ensureLeaflet(cb) {
-    if (window.L) { cb(); return; }
+    if (window.L) { fixLeafletDefaultIcons(); cb(); return; }
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(link);
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = cb;
+    script.onload = () => { fixLeafletDefaultIcons(); cb(); };
     document.head.appendChild(script);
   }
 
@@ -51,8 +83,8 @@ export default function MapPage() {
     const center = pinned.length ? [pinned[0].lat, pinned[0].lng] : [52.5, -1.5];
 
     const m = window.L.map(mapRef.current).setView(center, 6);
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+    tileLayerRef.current = window.L.tileLayer(getTileUrl(mapStyle), {
+      attribution: getTileAttribution(mapStyle)
     }).addTo(m);
 
     pinned.forEach(t => {
@@ -60,18 +92,25 @@ export default function MapPage() {
       const color = upcoming ? '#2d6a6a' : '#6b7280';
 
       const icon = window.L.divIcon({
-        className: '',
-        html: `<div style="background:${color};color:white;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer">${t.name}</div>`,
-        iconAnchor: [40, 16]
+        className: 'trip-map-pin',
+        html: `
+          <div class="trip-pin-body" style="background:${color};">
+            <span>${t.name}</span>
+          </div>
+          <div class="trip-pin-tail" style="border-top-color:${color};"></div>
+        `,
+        iconSize: [160, 44],
+        iconAnchor: [80, 44],
+        popupAnchor: [0, -48]
       });
 
-      const popup = window.L.popup({ maxWidth: 220 }).setContent(
-        `<div style="font-family:'DM Sans',sans-serif">
-          <strong style="font-size:14px">${t.name}</strong><br>
-          <span style="color:#6b7280;font-size:12px">📍 ${t.location || '—'}</span><br>
-          <span style="color:#6b7280;font-size:12px">📅 ${t.date || '—'}</span><br>
-          ${t.price ? `<span style="color:#6b7280;font-size:12px">💷 ${t.price}</span><br>` : ''}
-          <button onclick="window.__navigateToTrip('${t.id}')" style="margin-top:8px;padding:5px 10px;background:#2d6a6a;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer">View details →</button>
+      const popup = window.L.popup({ maxWidth: 240 }).setContent(
+        `<div style="font-family:'DM Sans',sans-serif;line-height:1.4;max-width:220px">
+          <strong style="font-size:14px;display:block;margin-bottom:6px">${t.name}</strong>
+          <div style="color:#374151;font-size:13px;margin-bottom:4px">📍 ${t.location || 'No location'}</div>
+          <div style="color:#374151;font-size:13px;margin-bottom:4px">📅 ${t.date || 'No date'}</div>
+          ${t.price ? `<div style="color:#374151;font-size:13px;margin-bottom:6px">💷 ${t.price}</div>` : ''}
+          <button onclick="window.__navigateToTrip('${t.id}')" style="margin-top:8px;padding:7px 12px;background:#1d4ed8;color:white;border:none;border-radius:8px;font-size:12px;cursor:pointer">View details →</button>
         </div>`
       );
 
@@ -105,6 +144,18 @@ export default function MapPage() {
               {pinned.length} pinned location{pinned.length !== 1 ? 's' : ''}
               {trips.length - pinned.length > 0 && ` · ${trips.length - pinned.length} without coordinates`}
             </p>
+          </div>
+          <div>
+            <label htmlFor="map-style" style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: 'var(--muted)' }}>Map style</label>
+            <select
+              id="map-style"
+              value={mapStyle}
+              onChange={e => setMapStyle(e.target.value)}
+              style={{ padding: '10px 12px', borderRadius: '12px', border: '1.5px solid var(--border)', background: 'white', color: 'var(--text)', minWidth: '170px' }}
+            >
+              <option value="streets">Normal map</option>
+              <option value="satellite">Satellite</option>
+            </select>
           </div>
         </div>
 

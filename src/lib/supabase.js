@@ -1,116 +1,217 @@
-import { createClient } from '@supabase/supabase-js';
+const USERS_KEY = 'daysout_users';
+const TRIPS_KEY = 'daysout_trips';
+const SESSION_KEY = 'daysout_session';
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// ── AUTH ──────────────────────────────────────────────────────────
-export async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return data;
+function loadStorage(key, fallback) {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    return JSON.parse(window.localStorage.getItem(key) || 'null') ?? fallback;
+  } catch {
+    return fallback;
+  }
 }
 
-export async function signUp(email, password, name) {
-  const { data, error } = await supabase.auth.signUp({
-    email,
+function saveStorage(key, value) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function dispatchAuthChange() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event('daysout-auth-change'));
+}
+
+function generateId(prefix = 'id') {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeUsername(username) {
+  return (username || '').trim().toLowerCase();
+}
+
+function getUsers() {
+  return loadStorage(USERS_KEY, []);
+}
+
+function saveUsers(users) {
+  saveStorage(USERS_KEY, users);
+}
+
+function getTripsStorage() {
+  return loadStorage(TRIPS_KEY, []);
+}
+
+function saveTrips(trips) {
+  saveStorage(TRIPS_KEY, trips);
+}
+
+function safeUser(user) {
+  if (!user) return null;
+  const { password, ...rest } = user;
+  return rest;
+}
+
+export function getSession() {
+  return loadStorage(SESSION_KEY, null);
+}
+
+export function onAuthStateChange(callback) {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('daysout-auth-change', callback);
+  return () => window.removeEventListener('daysout-auth-change', callback);
+}
+
+export async function signIn(username, password) {
+  const normalized = normalizeUsername(username);
+  const users = getUsers();
+  const user = users.find(u => u.username === normalized);
+  if (!user || user.password !== password) {
+    throw new Error('Invalid username or password');
+  }
+
+  const session = { user: safeUser(user) };
+  saveStorage(SESSION_KEY, session);
+  dispatchAuthChange();
+  return { data: { user: safeUser(user), session }, error: null };
+}
+
+export async function signUp(username, password, name) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) throw new Error('Username is required');
+  if (password.length < 6) throw new Error('Password must be at least 6 characters');
+
+  const users = getUsers();
+  if (users.some(u => u.username === normalized)) {
+    throw new Error('Username already exists');
+  }
+
+  const user = {
+    id: generateId('user'),
+    username: normalized,
+    name: name.trim() || normalized,
     password,
-    options: { data: { name } }
-  });
-  if (error) throw error;
-  return data;
+    role: 'user',
+    email: '',
+    created_at: new Date().toISOString(),
+  };
+  users.push(user);
+  saveUsers(users);
+
+  const session = { user: safeUser(user) };
+  saveStorage(SESSION_KEY, session);
+  dispatchAuthChange();
+  return { data: { user: safeUser(user), session }, error: null };
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  saveStorage(SESSION_KEY, null);
+  dispatchAuthChange();
 }
 
-export async function getSession() {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
-}
-
-// ── PROFILES ──────────────────────────────────────────────────────
 export async function getProfile(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-  if (error) throw error;
-  return data;
+  const users = getUsers();
+  return safeUser(users.find(u => u.id === userId) || null);
 }
 
 export async function getAllProfiles() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data;
+  const users = getUsers();
+  return users.map(safeUser).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
 export async function updateProfile(userId, updates) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', userId)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  const users = getUsers();
+  const index = users.findIndex(u => u.id === userId);
+  if (index === -1) throw new Error('Profile not found');
+
+  const user = users[index];
+  users[index] = {
+    ...user,
+    ...updates,
+    username: updates.username ? normalizeUsername(updates.username) : user.username,
+    name: updates.name !== undefined ? updates.name : user.name,
+    email: updates.email !== undefined ? updates.email : user.email,
+    role: updates.role !== undefined ? updates.role : user.role,
+  };
+  saveUsers(users);
+  return safeUser(users[index]);
 }
 
-// Admin creates a user via Supabase Auth admin API (requires service role — done via edge function)
-// For simplicity we use standard signUp and set role via profiles table
-export async function adminCreateUser(email, password, name, role) {
-  // Sign up the new user (they won't be auto-logged in because we're already logged in as admin)
-  const { data, error } = await supabase.auth.admin.createUser({
-    email,
+export async function adminCreateUser(username, password, name, role) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) throw new Error('Username is required');
+  if (password.length < 6) throw new Error('Password must be at least 6 characters');
+
+  const users = getUsers();
+  if (users.some(u => u.username === normalized)) {
+    throw new Error('Username already exists');
+  }
+
+  const user = {
+    id: generateId('user'),
+    username: normalized,
+    name: name.trim() || normalized,
     password,
-    user_metadata: { name },
-    email_confirm: true
-  });
-  if (error) throw error;
-  // Set role in profiles
-  await supabase.from('profiles').update({ role }).eq('id', data.user.id);
-  return data;
+    role: role || 'user',
+    email: '',
+    created_at: new Date().toISOString(),
+  };
+  users.push(user);
+  saveUsers(users);
+  return safeUser(user);
 }
 
 export async function deleteUser(userId) {
-  const { error } = await supabase.auth.admin.deleteUser(userId);
-  if (error) throw error;
+  let users = getUsers();
+  users = users.filter(u => u.id !== userId);
+  saveUsers(users);
+
+  let trips = getTripsStorage();
+  trips = trips.filter(t => t.user_id !== userId);
+  saveTrips(trips);
 }
 
-// ── TRIPS ─────────────────────────────────────────────────────────
 export async function getTrips(userId, isAdmin) {
-  let query = supabase.from('trips').select('*, profiles(name)').order('date', { ascending: true });
-  if (!isAdmin) query = query.eq('user_id', userId);
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
+  const trips = getTripsStorage();
+  const users = getUsers();
+
+  const filtered = isAdmin
+    ? trips
+    : trips.filter(t => t.user_id === userId);
+
+  return filtered
+    .slice()
+    .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0))
+    .map(t => {
+      const result = { ...t };
+      if (isAdmin) {
+        const user = users.find(u => u.id === t.user_id);
+        result.profiles = { name: user?.name || 'Unknown' };
+      }
+      return result;
+    });
 }
 
 export async function createTrip(trip) {
-  const { data, error } = await supabase.from('trips').insert([trip]).select().single();
-  if (error) throw error;
-  return data;
+  const trips = getTripsStorage();
+  const item = {
+    id: generateId('trip'),
+    ...trip,
+  };
+  trips.push(item);
+  saveTrips(trips);
+  return item;
 }
 
 export async function updateTrip(id, updates) {
-  const { data, error } = await supabase
-    .from('trips')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  const trips = getTripsStorage();
+  const index = trips.findIndex(t => t.id === id);
+  if (index === -1) throw new Error('Trip not found');
+  trips[index] = { ...trips[index], ...updates };
+  saveTrips(trips);
+  return trips[index];
 }
 
 export async function deleteTrip(id) {
-  const { error } = await supabase.from('trips').delete().eq('id', id);
-  if (error) throw error;
+  const trips = getTripsStorage().filter(t => t.id !== id);
+  saveTrips(trips);
 }

@@ -53,3 +53,11 @@ export function buildGCalUrl(trip) {
     `&details=${encodeURIComponent(details)}` +
     `&location=${encodeURIComponent(trip.location || '')}`;
 }
+
+export function buildGMapsUrl(trip) {
+  const destination = trip.lat && trip.lng
+    ? `${trip.lat},${trip.lng}`
+    : trip.location;
+  if (!destination) return null;
+  return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(destination)}`;
+}

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, getProfile } from './supabase';
+import { getSession, getProfile, onAuthStateChange } from './supabase';
 
 const AuthContext = createContext(null);
 
@@ -8,20 +8,18 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session) loadProfile(data.session.user.id);
-    });
+    const session = getSession();
+    setSession(session);
+    if (session) loadProfile(session.user.id);
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const unsubscribe = onAuthStateChange(() => {
+      const session = getSession();
       setSession(session);
       if (session) loadProfile(session.user.id);
       else setProfile(null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   async function loadProfile(userId) {
@@ -29,7 +27,6 @@ export function AuthProvider({ children }) {
       const p = await getProfile(userId);
       setProfile(p);
     } catch {
-      // Profile not yet created — will be created by DB trigger
       setProfile(null);
     }
   }
