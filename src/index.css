@@ -291,4 +291,37 @@ tr:last-child td { border-bottom: none; }
   .row-2 { grid-template-columns: 1fr; }
   .nav-tabs { display: none; }
   .main { padding: 1rem; }
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 56px;
+    background: var(--dark);
+    border-top: 1.5px solid var(--border);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .bottom-nav a {
+    flex: 1;
+    color: #fff;
+    text-align: center;
+    text-decoration: none;
+    font-size: 20px;
+    padding: 0 0 2px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    transition: color 0.2s;
+  }
+  .bottom-nav a span {
+    font-size: 11px;
+    margin-top: 2px;
+    display: block;
+  }
+  .bottom-nav a.active {
+    color: var(--gold);
+  }
 }
