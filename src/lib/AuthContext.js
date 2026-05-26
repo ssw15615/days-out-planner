@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { getSession, getProfile, onAuthStateChange } from './supabase';
+import { onAuthChange, getUserProfile } from './firebaseAuth';
 
 const AuthContext = createContext(null);
 
@@ -8,34 +8,35 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    const session = getSession();
-    setSession(session);
-    if (session) loadProfile(session.user.id);
+    let canceled = false;
+    const unsubscribe = onAuthChange(async (user) => {
+      if (canceled) return;
+      if (!user) {
+        setSession(null);
+        setProfile(null);
+        return;
+      }
 
-    const unsubscribe = onAuthStateChange(() => {
-      const session = getSession();
-      setSession(session);
-      if (session) loadProfile(session.user.id);
-      else setProfile(null);
+      setSession({ user });
+      try {
+        const profileData = await getUserProfile(user.uid);
+        setProfile(profileData || { name: user.displayName || user.email, email: user.email, role: 'user' });
+      } catch {
+        setProfile({ name: user.displayName || user.email, email: user.email, role: 'user' });
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      canceled = true;
+      unsubscribe();
+    };
   }, []);
-
-  async function loadProfile(userId) {
-    try {
-      const p = await getProfile(userId);
-      setProfile(p);
-    } catch {
-      setProfile(null);
-    }
-  }
 
   const isAdmin = profile?.role === 'admin';
   const loading = session === undefined;
 
   return (
-    <AuthContext.Provider value={{ session, profile, isAdmin, loading, refreshProfile: () => loadProfile(session?.user?.id) }}>
+    <AuthContext.Provider value={{ session, profile, isAdmin, loading }}>
       {children}
     </AuthContext.Provider>
   );

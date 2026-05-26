@@ -2,12 +2,21 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildGMapsUrl } from '../lib/utils';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../lib/AuthContext';
-import { createTrip } from '../lib/supabase';
+import { addTrip } from '../lib/firebaseDb';
 import { toast } from '../lib/toast';
 import TripModal from '../components/TripModal';
 import SearchBox from '../components/SearchBox';
 
 const ATTRACTIONS = [
+  {
+    id: 'aira-force',
+    name: 'Aira Force',
+    location: 'Ullswater, Lake District, Cumbria',
+    type: 'Park',
+    lat: 54.5831,
+    lng: -2.9297,
+    description: 'National Trust waterfall and woodland walk with scenic views and picnic spots.'
+  },
   {
     id: 'kingston-lacy',
     name: 'Kingston Lacy',
@@ -942,7 +951,7 @@ export default function ExplorePage() {
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => {
-                      if (!session?.user?.id) {
+                      if (!session?.user?.uid) {
                         toast('Please sign in to add trips.', 'error');
                         return;
                       }
@@ -971,9 +980,9 @@ export default function ExplorePage() {
           trip={modalTrip}
           onSave={async (form) => {
             try {
-              await createTrip({
+              await addTrip({
                 ...form,
-                user_id: session.user.id
+                userId: session.user.uid
               });
               toast('Added to your trips!', 'success');
             } catch (err) {

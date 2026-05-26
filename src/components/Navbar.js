@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
-import { signOut } from '../lib/supabase';
+import { signOutUser } from '../lib/firebaseAuth';
 import { toast } from '../lib/toast';
 import { initials } from '../lib/utils';
 
@@ -10,7 +10,7 @@ export default function Navbar() {
   const active = (path) => location.pathname === path ? 'nav-tab active' : 'nav-tab';
 
   async function handleSignOut() {
-    try { await signOut(); }
+    try { await signOutUser(); }
     catch { toast('Sign out failed', 'error'); }
   }
 

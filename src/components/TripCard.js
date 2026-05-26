@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { fmtDate, isUpcoming, catBadge, buildGCalUrl, buildGMapsUrl } from '../lib/utils';
-import { deleteTrip } from '../lib/supabase';
+import { deleteTrip } from '../lib/firebaseDb';
 import { toast } from '../lib/toast';
 import { useAuth } from '../lib/AuthContext';
 

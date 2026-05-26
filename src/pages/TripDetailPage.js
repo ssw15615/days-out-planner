@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
-import { getTrips, updateTrip } from '../lib/supabase';
+import { getTripById, updateTrip } from '../lib/firebaseDb';
 import { toast } from '../lib/toast';
 import { fmtDate, isUpcoming, catBadge, buildGCalUrl, buildGMapsUrl } from '../lib/utils';
 import TripModal from '../components/TripModal';
@@ -61,9 +61,11 @@ export default function TripDetailPage() {
   async function load() {
     setLoading(true);
     try {
-      const all = await getTrips(session.user.id, isAdmin);
-      const found = all.find(t => t.id === id);
-      if (!found) { navigate('/trips'); return; }
+      const found = await getTripById(id);
+      if (!found || (!isAdmin && found.userId !== session.user.uid)) {
+        navigate('/trips');
+        return;
+      }
       setTrip(found);
     } catch (err) {
       toast(err.message, 'error');

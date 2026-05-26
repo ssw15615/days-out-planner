@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
-import { getTrips } from '../lib/supabase';
+import { getUserTrips } from '../lib/firebaseDb';
 import { toast } from '../lib/toast';
 import { isUpcoming } from '../lib/utils';
 import Navbar from '../components/Navbar';
@@ -32,7 +32,7 @@ export default function MapPage() {
 
   async function loadAndInitMap() {
     try {
-      const data = await getTrips(session.user.id, isAdmin);
+      const data = await getUserTrips(session.user.uid, isAdmin);
       setTrips(data);
       setLoading(false);
       ensureLeaflet(() => setTimeout(() => buildMap(data), 100));

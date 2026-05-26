@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { getAllProfiles, getTrips, adminCreateUser, deleteUser, updateProfile } from '../lib/supabase';
+import { getAllUsers, getAllTrips, updateUserRole, deleteUserAndTrips } from '../lib/firebaseDb';
 import { toast } from '../lib/toast';
 import { isUpcoming, initials } from '../lib/utils';
 import Navbar from '../components/Navbar';
@@ -10,9 +10,6 @@ export default function AdminPage() {
   const [profiles, setProfiles] = useState([]);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', username: '', password: '', role: 'user' });
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -22,7 +19,7 @@ export default function AdminPage() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [p, t] = await Promise.all([getAllProfiles(), getTrips(session.user.id, true)]);
+      const [p, t] = await Promise.all([getAllUsers(), getAllTrips()]);
       setProfiles(p);
       setTrips(t);
     } catch (err) {
@@ -32,30 +29,11 @@ export default function AdminPage() {
     }
   }
 
-  async function handleCreateUser(e) {
-    e.preventDefault();
-    if (!createForm.name || !createForm.username || !createForm.password) {
-      toast('Fill all fields', 'error'); return;
-    }
-    setCreating(true);
-    try {
-      await adminCreateUser(createForm.username, createForm.password, createForm.name, createForm.role);
-      toast(`Account created for ${createForm.name}`, 'success');
-      setShowCreate(false);
-      setCreateForm({ name: '', username: '', password: '', role: 'user' });
-      loadAll();
-    } catch (err) {
-      toast(err.message, 'error');
-    } finally {
-      setCreating(false);
-    }
-  }
-
   async function handleDeleteUser(userId, name) {
-    if (userId === session.user.id) { toast("Can't delete your own account", 'error'); return; }
+    if (userId === session.user.uid) { toast("Can't delete your own account", 'error'); return; }
     if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
     try {
-      await deleteUser(userId);
+      await deleteUserAndTrips(userId);
       toast('User deleted');
       loadAll();
     } catch (err) {
@@ -65,7 +43,7 @@ export default function AdminPage() {
 
   async function handleRoleChange(userId, newRole) {
     try {
-      await updateProfile(userId, { role: newRole });
+      await updateUserRole(userId, newRole);
       toast('Role updated', 'success');
       loadAll();
     } catch (err) {
@@ -86,47 +64,9 @@ export default function AdminPage() {
         <div className="page-header">
           <div>
             <h1 className="page-title">Admin Panel</h1>
-            <p className="page-subtitle">Manage users and view platform stats</p>
+            <p className="page-subtitle">View users, trips and platform stats</p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowCreate(s => !s)}>
-            {showCreate ? '✕ Cancel' : '＋ Create user'}
-          </button>
         </div>
-
-        {showCreate && (
-          <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '480px' }}>
-            <p style={{ fontWeight: 600, marginBottom: '1rem', fontSize: '15px' }}>New user account</p>
-            <form onSubmit={handleCreateUser}>
-              <div className="row-2">
-                <div className="form-group">
-                  <label>Full name</label>
-                  <input type="text" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} required />
-                </div>
-                <div className="form-group">
-                  <label>Role</label>
-                  <select value={createForm.role} onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}>
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Username</label>
-                <input type="text" value={createForm.username} onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))} required />
-              </div>
-              <div className="form-group">
-                <label>Temporary password</label>
-                <input type="text" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} required minLength={6} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button type="submit" className="btn btn-primary" disabled={creating}>
-                  {creating ? 'Creating…' : 'Create account'}
-                </button>
-                <button type="button" className="btn btn-outline" onClick={() => setShowCreate(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        )}
 
         {loading ? (
           <div className="loading"><div className="spinner" />Loading…</div>
@@ -146,7 +86,7 @@ export default function AdminPage() {
                   <thead>
                     <tr>
                       <th>User</th>
-                      <th>Username</th>
+                      <th>Email</th>
                       <th>Role</th>
                       <th>Trips</th>
                       <th>Joined</th>
@@ -162,27 +102,27 @@ export default function AdminPage() {
                               {initials(p.name || '')}
                             </div>
                             <strong>{p.name || '—'}</strong>
-                            {p.id === session.user.id && <span className="badge badge-teal" style={{ fontSize: '10px' }}>You</span>}
+                            {p.id === session.user.uid && <span className="badge badge-teal" style={{ fontSize: '10px' }}>You</span>}
                           </div>
                         </td>
-                        <td style={{ color: 'var(--muted)' }}>{p.username || '—'}</td>
+                        <td style={{ color: 'var(--muted)' }}>{p.email || '—'}</td>
                         <td>
                           <select
                             value={p.role || 'user'}
                             onChange={e => handleRoleChange(p.id, e.target.value)}
                             style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--cream)' }}
-                            disabled={p.id === session.user.id}
+                            disabled={p.id === session.user.uid}
                           >
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
                           </select>
                         </td>
-                        <td>{trips.filter(t => t.user_id === p.id).length}</td>
+                        <td>{trips.filter(t => t.userId === p.id).length}</td>
                         <td style={{ color: 'var(--muted)' }}>
-                          {p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : '—'}
+                          {p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString('en-GB') : p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}
                         </td>
                         <td>
-                          {p.id !== session.user.id && (
+                          {p.id !== session.user.uid && (
                             <button
                               className="btn btn-danger btn-sm"
                               onClick={() => handleDeleteUser(p.id, p.name)}

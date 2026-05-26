@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signIn, signUp } from '../lib/supabase';
+import { signIn, signUp } from '../lib/firebaseAuth';
 
 export default function AuthPage() {
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', username: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -15,8 +15,8 @@ export default function AuthPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      if (!form.username.trim()) {
-        setError('Username is required');
+      if (!form.email.trim()) {
+        setError('Email is required');
         setLoading(false);
         return;
       }
@@ -27,14 +27,14 @@ export default function AuthPage() {
       }
 
       if (mode === 'login') {
-        await signIn(form.username, form.password);
+        await signIn(form.email, form.password);
       } else {
         if (!form.name.trim()) {
           setError('Full name is required');
           setLoading(false);
           return;
         }
-        await signUp(form.username, form.password, form.name);
+        await signUp(form.email, form.password, form.name);
       }
       navigate('/trips');
     } catch (err) {
@@ -62,9 +62,8 @@ export default function AuthPage() {
             </div>
           )}
           <div className="form-group">
-            <label>Username</label>
-            <input type="text" value={form.username} onChange={e => set('username', e.target.value)} placeholder="yourusername" required />
-            <small className="form-help">You can sign in with this username instead of email.</small>
+            <label>Email</label>
+            <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="you@example.com" required />
           </div>
           <div className="form-group">
             <label>Password</label>

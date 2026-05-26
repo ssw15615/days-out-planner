@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { getTrips, createTrip, updateTrip } from '../lib/supabase';
+import { getUserTrips, addTrip, updateTrip } from '../lib/firebaseDb';
 import { toast } from '../lib/toast';
 import { isUpcoming } from '../lib/utils';
 import TripCard from '../components/TripCard';
@@ -18,7 +18,7 @@ export default function TripsPage() {
   async function load() {
     setLoading(true);
     try {
-      const data = await getTrips(session.user.id, isAdmin);
+      const data = await getUserTrips(session.user.uid, isAdmin);
       setTrips(data);
     } catch (err) {
       toast(err.message, 'error');
@@ -29,7 +29,7 @@ export default function TripsPage() {
 
   async function handleSave(form) {
     if (modal === 'add') {
-      await createTrip({ ...form, user_id: session.user.id });
+      await addTrip({ ...form, userId: session.user.uid });
       toast('Trip added! 🎉', 'success');
     } else {
       await updateTrip(modal.id, form);
