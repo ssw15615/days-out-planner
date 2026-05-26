@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useAuth } from '../lib/AuthContext';
+import { uploadTripPhoto } from '../lib/firebaseDb';
 import { CATEGORIES } from '../lib/utils';
 
 const BLANK = {
   name: '', category: 'Theme Park', date: '', time: '',
   location: '', lat: '', lng: '', price: '',
-  website: '', ticket_url: '', notes: ''
+  website: '', ticket_url: '', notes: '', photoUrl: ''
 };
 
 export default function TripModal({ trip, onSave, onClose }) {
+  const { session } = useAuth();
   const [form, setForm] = useState(trip ? {
     name: trip.name || '',
     category: trip.category || 'Theme Park',
@@ -22,12 +25,15 @@ export default function TripModal({ trip, onSave, onClose }) {
     website: trip.website || '',
     ticket_url: trip.ticket_url || '',
     notes: trip.notes || '',
+    photoUrl: trip.photoUrl || '',
   } : { ...BLANK });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState('');
 
   const mapContainer = useRef(null);
   const mapInstance = useRef(null);
@@ -140,6 +146,20 @@ export default function TripModal({ trip, onSave, onClose }) {
     }
   }
 
+  async function handleFileUpload(file) {
+    if (!session?.user?.uid || !file) return;
+    setPhotoUploadError('');
+    setPhotoUploading(true);
+    try {
+      const url = await uploadTripPhoto(file, session.user.uid);
+      set('photoUrl', url);
+    } catch (e) {
+      setPhotoUploadError('Photo upload failed. Try a smaller file or another image.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
   async function handleSave() {
     if (!form.name.trim()) { setError('Trip name is required'); return; }
     setSaving(true);
@@ -229,6 +249,28 @@ export default function TripModal({ trip, onSave, onClose }) {
             <div style={{ marginBottom: '0.75rem', fontWeight: 600 }}>Location picker</div>
             <div ref={mapContainer} style={{ width: '100%', minHeight: '220px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #d1d5db' }} />
             <div className="hint">Tap or click the map to set coordinates.</div>
+          </div>
+
+          <div className="form-group">
+            <label>Trip photo</label>
+            {form.photoUrl && (
+              <div className="photo-preview" style={{ backgroundImage: `url(${form.photoUrl})` }} />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={e => handleFileUpload(e.target.files?.[0])}
+            />
+            <input
+              type="url"
+              value={form.photoUrl}
+              onChange={e => set('photoUrl', e.target.value)}
+              placeholder="or paste an image URL"
+            />
+            <small className="hint">
+              {photoUploading ? 'Uploading photo…' : 'Upload an image or paste a URL to show on the trip.'}
+            </small>
+            {photoUploadError && <div className="auth-error" style={{ marginTop: '0.75rem' }}>{photoUploadError}</div>}
           </div>
 
           <div className="form-group">

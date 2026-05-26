@@ -1,4 +1,4 @@
-import { db } from './firebase';
+import { db, storage } from './firebase';
 import {
   collection,
   addDoc,
@@ -12,6 +12,14 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+
+export async function uploadTripPhoto(file, userId) {
+  const storageRef = ref(storage, `trips/${userId}/${Date.now()}-${file.name}`);
+  const snapshot = await uploadBytesResumable(storageRef, file);
+  const url = await getDownloadURL(snapshot.ref);
+  return url;
+}
 
 export async function addTrip(trip) {
   const result = await addDoc(collection(db, 'trips'), {

@@ -153,6 +153,222 @@ const ATTRACTIONS = [
     description: 'Iconic garden rooms and walkways set around a dramatic tower.'
   },
   {
+    id: 'waddesdon-manor',
+    name: 'Waddesdon Manor',
+    location: 'Buckinghamshire',
+    type: 'Historic Site',
+    lat: 51.7084,
+    lng: -0.9990,
+    description: 'Opulent National Trust manor house with formal gardens, fountains and riverside walks.'
+  },
+  {
+    id: 'clumber-park',
+    name: 'Clumber Park',
+    location: 'Nottinghamshire',
+    type: 'Park',
+    lat: 53.2139,
+    lng: -1.1134,
+    description: 'Vast historic parkland with lakes, woodland trails and extensive outdoor activities.'
+  },
+  {
+    id: 'caernarfon-castle',
+    name: 'Caernarfon Castle',
+    location: 'Gwynedd, Wales',
+    type: 'Historic Site',
+    lat: 53.1392,
+    lng: -4.2760,
+    description: 'Iconic Cadw castle on the Menai Strait with massive walls and dramatic Welsh history.'
+  },
+  {
+    id: 'conwy-castle',
+    name: 'Conwy Castle',
+    location: 'Conwy, Wales',
+    type: 'Historic Site',
+    lat: 53.2836,
+    lng: -3.8280,
+    description: 'Medieval seaside fortress with towers, battlements and views over the Welsh coast.'
+  },
+  {
+    id: 'tintern-abbey',
+    name: 'Tintern Abbey',
+    location: 'Monmouthshire, Wales',
+    type: 'Historic Site',
+    lat: 51.7088,
+    lng: -2.7195,
+    description: 'Atmospheric Cadw abbey ruins set in the Wye Valley with riverside walks and historic gardens.'
+  },
+  {
+    id: 'castell-coch',
+    name: 'Castell Coch',
+    location: 'Cardiff, Wales',
+    type: 'Historic Site',
+    lat: 51.5098,
+    lng: -3.2290,
+    description: 'Fairytale Cadw castle perched above the Taff Valley with lavish rooms and wooded walks.'
+  },
+  {
+    id: 'caerphilly-castle',
+    name: 'Caerphilly Castle',
+    location: 'Caerphilly, Wales',
+    type: 'Historic Site',
+    lat: 51.5844,
+    lng: -3.2142,
+    description: 'Grand moated Cadw fortress with tower climbs, water defenses and ruined walls.'
+  },
+  {
+    id: 'culzean-castle',
+    name: 'Culzean Castle',
+    location: 'Ayrshire, Scotland',
+    type: 'Historic Site',
+    lat: 55.2824,
+    lng: -4.8380,
+    description: 'Dramatic National Trust for Scotland clifftop castle with gardens, golf and coastal paths.'
+  },
+  {
+    id: 'crathes-castle',
+    name: 'Crathes Castle',
+    location: 'Aberdeenshire, Scotland',
+    type: 'Historic Site',
+    lat: 57.0620,
+    lng: -2.5009,
+    description: 'Stone tower house with ornate gardens, woodland walks and romantic historic interiors.'
+  },
+  {
+    id: 'inverewe-garden',
+    name: 'Inverewe Garden',
+    location: 'Highland, Scotland',
+    type: 'Park',
+    lat: 57.8308,
+    lng: -5.8707,
+    description: 'Subtropical National Trust for Scotland garden set on a dramatic coastal estate with exotic planting.'
+  },
+  {
+    id: 'glen-coe',
+    name: 'Glen Coe',
+    location: 'Highland, Scotland',
+    type: 'Park',
+    lat: 56.6825,
+    lng: -5.1026,
+    description: 'Wild National Trust for Scotland valley with dramatic mountains, waterfalls and historic trails.'
+  },
+  {
+    id: 'smoo-cave',
+    name: 'Smoo Cave',
+    location: 'Durness, Scotland',
+    type: 'Historic Site',
+    lat: 58.5939,
+    lng: -3.4760,
+    description: 'Legendary coastal cave with a dramatic sea entrance and visitor trail through the Highland cliffs.'
+  },
+  {
+    id: 'anderton-boat-lift',
+    name: 'Anderton Boat Lift',
+    location: 'Northwich, Cheshire',
+    type: 'Waterway',
+    lat: 53.2592,
+    lng: -2.5631,
+    description: 'Historic canal lift linking the Trent & Mersey Canal with the River Weaver for boat viewing and waterside walks.'
+  },
+  {
+    id: 'bingley-five-rise-locks',
+    name: 'Bingley Five Rise Locks',
+    location: 'Bingley, West Yorkshire',
+    type: 'Waterway',
+    lat: 53.8418,
+    lng: -1.7958,
+    description: 'Iconic stairway of canal locks on the Leeds & Liverpool Canal with towpath walks and visitor facilities.'
+  },
+  {
+    id: 'foxton-locks',
+    name: 'Foxton Locks',
+    location: 'Leicestershire',
+    type: 'Waterway',
+    lat: 52.5241,
+    lng: -0.9357,
+    description: 'Historic canal lock flight with visitor centre, museum and scenic Grand Union Canal walks.'
+  },
+  {
+    id: 'standedge-tunnel',
+    name: 'Standedge Tunnel & Visitor Centre',
+    location: 'Marsden, West Yorkshire',
+    type: 'Waterway',
+    lat: 53.6322,
+    lng: -2.0514,
+    description: 'Longest canal tunnel in Britain with guided boat trips and a dramatic Pennine waterway route.'
+  },
+  {
+    id: 'llangollen-canal',
+    name: 'Llangollen Canal',
+    location: 'Llangollen, Denbighshire',
+    type: 'Waterway',
+    lat: 52.9658,
+    lng: -3.1454,
+    description: 'Picturesque canal valley with aqueducts, locks and riverside walking managed by Canal & River Trust.'
+  },
+  {
+    id: 'chirk-aqueduct',
+    name: 'Chirk Aqueduct',
+    location: 'Wrexham, Wales',
+    type: 'Waterway',
+    lat: 52.9792,
+    lng: -3.0141,
+    description: 'Historic Thomas Telford aqueduct on the Llangollen Canal with scenic towpaths and visitor viewpoints.'
+  },
+  {
+    id: 'braunston-marina',
+    name: 'Braunston Marina',
+    location: 'Daventry, Northamptonshire',
+    type: 'Waterway',
+    lat: 52.3112,
+    lng: -1.0601,
+    description: 'Busy canal village and marina on the Grand Union Canal with pubs, workshops and scenic towpath routes.'
+  },
+  {
+    id: 'kennet-avon-canal',
+    name: 'Kennet & Avon Canal',
+    location: 'Bath, Somerset',
+    type: 'Waterway',
+    lat: 51.3758,
+    lng: -2.3599,
+    description: 'Historic towpath route along a peaceful canal corridor with locks, bridges and waterside cafés.'
+  },
+  {
+    id: 'grand-union-canal',
+    name: 'Grand Union Canal',
+    location: 'Brentford, London',
+    type: 'Waterway',
+    lat: 51.4922,
+    lng: -0.3026,
+    description: 'Central London canal route ideal for waterside walking, heritage boats and historic locks.'
+  },
+  {
+    id: 'stourport-on-severn',
+    name: 'Stourport on Severn',
+    location: 'Worcestershire',
+    type: 'Waterway',
+    lat: 52.3841,
+    lng: -2.2250,
+    description: 'Historic canal and river junction with boating, pubs and canalside heritage managed by the Trust.'
+  },
+  {
+    id: 'macclesfield-canal',
+    name: 'Macclesfield Canal',
+    location: 'Cheshire',
+    type: 'Waterway',
+    lat: 53.2088,
+    lng: -2.1054,
+    description: 'Scenic canal route through Cheshire countryside with winding locks and waterside meadows.'
+  },
+  {
+    id: 'regents-canal',
+    name: "Regent's Canal",
+    location: 'London',
+    type: 'Waterway',
+    lat: 51.5194,
+    lng: -0.1165,
+    description: 'Popular city canal with historic narrowboats, cafés and easy towpath walks between Paddington and the Olympic Park.'
+  },
+  {
     id: 'tatton-park',
     name: 'Tatton Park',
     location: 'Cheshire',
@@ -714,6 +930,8 @@ const ATTRACTIONS = [
 
 function getTypeLabel(type) {
   if (type === 'Airport' || type === 'Military Base') return `✈️ ${type}`;
+  if (type === 'Waterway') return `🌊 ${type}`;
+  if (type === 'Historic Site') return `🏰 ${type}`;
   return type;
 }
 
@@ -750,7 +968,7 @@ export default function ExplorePage() {
   const [mapView, setMapView] = useState(false);
   const [mapStyle, setMapStyle] = useState('streets');
   const [selectedTypes, setSelectedTypes] = useState([
-    'Airport', 'Military Base', 'Park', 'Attraction', 'Theme Park', 'Beach', 'Walk'
+    'Airport', 'Military Base', 'Park', 'Attraction', 'Theme Park', 'Beach', 'Walk', 'Waterway', 'Historic Site'
   ]);
   const [loadingLocation, setLoadingLocation] = useState(true);
   const mapRef = useRef(null);
@@ -867,11 +1085,11 @@ export default function ExplorePage() {
           <div>
             <h1 className="page-title">Explore</h1>
             <p className="page-subtitle">
-              Browse National Trust parks, beaches, theme parks, attractions and UK airports.
+              Browse National Trust, Cadw, National Trust for Scotland, parks, beaches, theme parks and UK airports.
             </p>
             <SearchBox placeholder="Search places..." onSearch={setSearch} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px' }}>
-              {['Airport', 'Military Base', 'Park', 'Attraction', 'Theme Park', 'Beach', 'Walk'].map((type) => (
+              {['Airport', 'Military Base', 'Park', 'Attraction', 'Theme Park', 'Beach', 'Walk', 'Waterway', 'Historic Site'].map((type) => (
                 <label key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--muted)' }}>
                   <input
                     type="checkbox"

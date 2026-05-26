@@ -61,7 +61,11 @@ export default function TripCard({ trip, onEdit, onDeleted }) {
 
   return (
     <div className="trip-card" onClick={() => navigate(`/trips/${trip.id}`)}>
-      <div className={`trip-card-banner ${upcoming ? 'upcoming' : 'past'}`} />
+      {trip.photoUrl ? (
+        <div className="trip-card-image" style={{ backgroundImage: `url(${trip.photoUrl})` }} />
+      ) : (
+        <div className={`trip-card-banner ${upcoming ? 'upcoming' : 'past'}`} />
+      )}
       <div className="trip-card-body">
         <div className="trip-name">{trip.name}</div>
         <div className="trip-meta">

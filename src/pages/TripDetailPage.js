@@ -109,6 +109,10 @@ export default function TripDetailPage() {
           ← Back to trips
         </button>
 
+        {trip.photoUrl && (
+          <div className="detail-photo" style={{ backgroundImage: `url(${trip.photoUrl})` }} />
+        )}
+
         <div className="detail-hero">
           <div style={{ fontSize: '13px', opacity: 0.7, marginBottom: '0.5rem' }}>
             <span className={`badge ${catBadge(trip.category)}`}>{trip.category || 'Day Out'}</span>
